@@ -343,22 +343,21 @@ function render(){
     else{ const k=kw.toLowerCase(); data=data.filter(q=>(q.b+opts(q).join('')+(q.e||'')).toLowerCase().includes(k)); }
   }
   statEl.textContent=`顯示 ${data.length} 題`+(mode==='quiz'?'（測驗模式：點選項作答）':'');
+  data.sort((a,b)=>a.n-b.n); // 一律依題號排序
 
-  // group by category when showing all
-  const groups={};
-  data.forEach(q=>{(groups[q.c]=groups[q.c]||[]).push(q);});
-  Object.keys(groups).sort((a,b)=>a-b).forEach(cid=>{
+  if(!data.length){listEl.innerHTML='<p style="color:var(--sub);text-align:center;padding:30px">查無符合的題目。</p>';return;}
+
+  // 只有「選定單一分類且未搜尋」時才分類標題＋重點速記；其餘（含「全部」）一律依題號平鋪
+  if(curCat!=0 && !kw){
     const head=document.createElement('div');head.className='cat-head';
-    head.textContent=`${CATS[cid]}（${groups[cid].length} 題）`;listEl.appendChild(head);
-    // 重點速記
-    if(NOTES[cid]){
+    head.textContent=`${CATS[curCat]}（${data.length} 題）`;listEl.appendChild(head);
+    if(NOTES[curCat]){
       const d=document.createElement('details');d.className='note';
-      d.innerHTML=`<summary>📌 ${CATS[cid]} · 重點速記</summary><ul>${NOTES[cid].map(x=>`<li>${x}</li>`).join('')}</ul>`;
+      d.innerHTML=`<summary>📌 ${CATS[curCat]} · 重點速記</summary><ul>${NOTES[curCat].map(x=>`<li>${x}</li>`).join('')}</ul>`;
       listEl.appendChild(d);
     }
-    groups[cid].forEach(q=>listEl.appendChild(card(q)));
-  });
-  if(!data.length)listEl.innerHTML='<p style="color:var(--sub);text-align:center;padding:30px">查無符合的題目。</p>';
+  }
+  data.forEach(q=>listEl.appendChild(card(q)));
 }
 
 function card(q){
