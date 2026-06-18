@@ -68,7 +68,7 @@
 <div class="wrap">
   <div class="controls">
     <div class="row">
-      <input type="search" id="search" placeholder="🔍 搜尋題目或關鍵字（例：電池、紅牌、F9A-A、回中線）">
+      <input type="search" id="search" placeholder="🔍 搜尋：關鍵字（電池/紅牌）或題號（15、15-30、1,5,9）">
       <div class="seg" id="mode">
         <button data-mode="study" class="on">學習模式</button>
         <button data-mode="quiz">測驗模式</button>
@@ -318,10 +318,30 @@ document.getElementById('search').oninput=e=>{kw=e.target.value.trim();render();
 function opts(q){return q.t==='TF'?TF_OPTS:q.o;}
 const KEYS=['A','B','C','D'];
 
+// 純題號搜尋：支援 "15"、範圍 "15-30"、清單 "1,5,9"、混合 "1,5,10-12"
+function parseNums(s){
+  s=s.replace(/\s+/g,'');
+  if(!/^[0-9,\-]+$/.test(s)) return null;       // 含非數字 → 當關鍵字
+  const set=new Set();
+  for(const part of s.split(',')){
+    if(!part) continue;
+    const m=part.match(/^(\d+)-(\d+)$/);
+    if(m){ let a=+m[1],b=+m[2]; if(a>b)[a,b]=[b,a]; for(let i=a;i<=b;i++)set.add(i); }
+    else if(/^\d+$/.test(part)) set.add(+part);
+    else return null;
+  }
+  return set.size?set:null;
+}
+
 function render(){
   listEl.innerHTML='';
-  let data=Q.filter(q=>(curCat==0||q.c==curCat));
-  if(kw){const k=kw.toLowerCase();data=data.filter(q=>(q.b+opts(q).join('')+(q.e||'')).toLowerCase().includes(k)||(''+q.n)===kw);}
+  const nums=kw?parseNums(kw):null;
+  // 題號搜尋忽略分類；其他情況套用目前分類
+  let data=nums?Q.slice():Q.filter(q=>(curCat==0||q.c==curCat));
+  if(kw){
+    if(nums){ data=data.filter(q=>nums.has(q.n)); }
+    else{ const k=kw.toLowerCase(); data=data.filter(q=>(q.b+opts(q).join('')+(q.e||'')).toLowerCase().includes(k)); }
+  }
   statEl.textContent=`顯示 ${data.length} 題`+(mode==='quiz'?'（測驗模式：點選項作答）':'');
 
   // group by category when showing all
